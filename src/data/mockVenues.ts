@@ -1,4 +1,28 @@
-import { Venue } from '../types';
+import { Venue, TimeSlot } from '../types';
+
+// Generate random time slots for venues
+const generateTimeSlots = (): TimeSlot[] => {
+  const slots: TimeSlot[] = [];
+  const times = ['7:00 PM', '7:30 PM', '8:00 PM', '8:30 PM', '9:00 PM', '9:30 PM', '10:00 PM', '10:30 PM'];
+  const types = ['Dining Room', 'Bar Seat'];
+  
+  // Generate 3-5 random time slots
+  const numSlots = Math.floor(Math.random() * 3) + 3;
+  
+  for (let i = 0; i < numSlots; i++) {
+    const time = times[Math.floor(Math.random() * times.length)];
+    const type = types[Math.floor(Math.random() * types.length)];
+    const available = Math.random() > 0.3; // 70% chance of being available
+    
+    slots.push({
+      time,
+      type,
+      available
+    });
+  }
+  
+  return slots;
+};
 
 export const mockVenues: Venue[] = [
   {
@@ -22,7 +46,13 @@ export const mockVenues: Venue[] = [
       'https://images.unsplash.com/photo-1544148103-0773bf10d330?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80'
     ],
     type: 'Pizza',
-    available: true
+    available: true,
+    timeSlots: [
+      { time: '9:30 PM', type: 'Dining Room', available: true },
+      { time: '10:00 PM', type: 'Bar Seat', available: true },
+      { time: '10:00 PM', type: 'Dining Room', available: false },
+      { time: '10:30 PM', type: 'Dining Room', available: true },
+    ]
   },
   {
     id: '2',
@@ -206,3 +236,10 @@ export const mockVenues: Venue[] = [
     available: true
   }
 ];
+
+// Add time slots to all venues that don't have them
+mockVenues.forEach(venue => {
+  if (!venue.timeSlots) {
+    venue.timeSlots = generateTimeSlots();
+  }
+});

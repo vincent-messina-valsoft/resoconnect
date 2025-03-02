@@ -14,6 +14,12 @@ import Logo from './components/Logo.tsx';
 import { mockVenues } from './data/mockVenues.ts';
 import { Venue, FilterOptions } from './types';
 import { ArrowDown, Filter } from 'lucide-react';
+import VenueList from './components/VenueList.tsx';
+import VenueListView from './components/VenueListView.tsx';
+import { pointsOfInterest } from './data/pointsOfInterest.ts';
+import VenueDetailView from './components/VenueDetailView.tsx';
+import GuestListModal from './components/GuestListModal.tsx';
+import TableReservationView from './components/TableReservationView.tsx';
 
 function App() {
   const [venues, setVenues] = useState<Venue[]>(mockVenues);
@@ -21,36 +27,111 @@ function App() {
   const [showReservationModal, setShowReservationModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [isVenueListExpanded, setIsVenueListExpanded] = useState(false);
+  const [showPOIs, setShowPOIs] = useState(true);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
+  const [reservationTime, setReservationTime] = useState('');
+  const [reservationTableType, setReservationTableType] = useState('');
   const [confirmationDetails, setConfirmationDetails] = useState({
     venue: mockVenues[0],
     partySize: 2,
     date: 'Today',
     time: '7:00 PM',
-    confirmationCode: ''
+    confirmationCode: '',
+    tableDetails: null
   });
-  const [activeTab, setActiveTab] = useState<'discover' | 'search' | 'account'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'search' | 'account'>('search');
   const [mapCenter, setMapCenter] = useState({ lat: 45.5017, lng: -73.5673 }); // Montreal
   const [filters, setFilters] = useState<FilterOptions>({
     partySize: 2,
     date: 'Today',
     time: 'All Day',
-    filterType: 'available'
+    selectedFilters: ['available']
   });
   const [cardPosition, setCardPosition] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const startY = useRef(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [showGuestListModal, setShowGuestListModal] = useState(false);
+  const [guestListVenue, setGuestListVenue] = useState<Venue | null>(null);
+  const [showTableReservation, setShowTableReservation] = useState(false);
+  const [selectedTableDetails, setSelectedTableDetails] = useState<{
+    id: string;
+    tier: string;
+    capacity: number;
+  } | null>(null);
+  const [tableInquiries, setTableInquiries] = useState<{
+    venueId: string;
+    tableId: string;
+    tier: string;
+    deposit: number;
+    men: number;
+    women: number;
+  }[]>([]);
 
   // Filter venues based on selected filters
   useEffect(() => {
+    // Filter venues based on the selectedFilters array
     let filteredVenues = [...mockVenues];
     
-    if (filters.filterType === 'available') {
+    // If 'all' is selected, show all venues
+    if (filters.selectedFilters.includes('all')) {
+      setVenues(filteredVenues);
+      return;
+    }
+    
+    // Filter by availability if 'available' is selected
+    if (filters.selectedFilters.includes('available')) {
       filteredVenues = filteredVenues.filter(venue => venue.available);
+    }
+    
+    // Filter by venue types (nightclub, lounge, bar)
+    const venueTypeFilters = filters.selectedFilters.filter(
+      filter => ['nightclub', 'lounge', 'bar'].includes(filter)
+    );
+    
+    if (venueTypeFilters.length > 0) {
+      filteredVenues = filteredVenues.filter(venue => {
+        const venueType = venue.type.toLowerCase();
+        return venueTypeFilters.some(filter => {
+          // Map filter categories to actual venue types
+          if (filter === 'nightclub') {
+            return venueType === 'nightclub' || venueType === 'club';
+          } else if (filter === 'lounge') {
+            return venueType === 'lounge';
+          } else if (filter === 'bar') {
+            return venueType === 'bar' || venueType.includes('bar');
+          }
+          return false;
+        });
+      });
+    }
+    
+    // Filter by events if 'events' is selected
+    if (filters.selectedFilters.includes('events')) {
+      // In a real app, this would filter venues with upcoming events
+      // For now, we'll just use a simple condition as an example
+      filteredVenues = filteredVenues.filter(venue => 
+        venue.name.includes('Event') || venue.type.includes('Event')
+      );
     }
     
     setVenues(filteredVenues);
   }, [filters]);
+
+  // When venue list expands, dismiss the selected venue card
+  useEffect(() => {
+    if (isVenueListExpanded && selectedVenue) {
+      setSelectedVenue(null);
+    }
+    
+    // Set view mode to list when expanded, map when collapsed
+    if (isVenueListExpanded) {
+      setViewMode('list');
+    } else {
+      setViewMode('map');
+    }
+  }, [isVenueListExpanded, selectedVenue]);
 
   const handleSearch = (query: string) => {
     if (!query) {
@@ -79,8 +160,54 @@ function App() {
   };
 
   const handleReserve = (venue: Venue) => {
+    // Instead of immediately showing the reservation modal,
+    // show the table reservation view first
     setSelectedVenue(venue);
+    setShowTableReservation(true);
+  };
+
+  const handleTableReserve = (tableId: string, tier: string, capacity: number) => {
+    setSelectedTableDetails({
+      id: tableId,
+      tier,
+      capacity
+    });
+    // Now show the reservation modal with the selected table details
+    setShowTableReservation(false);
     setShowReservationModal(true);
+  };
+
+  const handleReserveWithTime = (venue: Venue, time: string, tableType: string) => {
+    console.log(`handleReserveWithTime called: ${venue.name}, ${time}, ${tableType}`);
+    
+    // Reset any conflicting states
+    setShowTableReservation(false);
+    setShowReservationModal(false);
+    setShowConfirmation(false);
+    setShowFilterModal(false);
+    setShowGuestListModal(false);
+    
+    // Set the selected venue and time
+    setSelectedVenue(venue);
+    setReservationTime(time);
+    setReservationTableType(tableType);
+    
+    // Switch to map view and close the list view
+    setViewMode('map');
+    setIsVenueListExpanded(false);
+    
+    // Add a small delay to ensure state updates are processed
+    setTimeout(() => {
+      console.log('After timeout - Selected venue:', venue.name);
+      console.log('After timeout - Reservation time:', time);
+      console.log('After timeout - Table type:', tableType);
+    }, 100);
+  };
+
+  const handleNotify = (venue: Venue, time: string, tableType: string) => {
+    // In a real app, this would set up a notification
+    console.log(`Setting up notification for ${venue.name} at ${time} for ${tableType}`);
+    alert(`You'll be notified when a ${tableType} becomes available at ${venue.name} for ${time}`);
   };
 
   const handleFavorite = (venueId: string) => {
@@ -100,8 +227,9 @@ function App() {
       venue,
       partySize,
       date,
-      time,
-      confirmationCode
+      time: reservationTime || time,
+      confirmationCode,
+      tableDetails: selectedTableDetails
     });
     
     setShowConfirmation(true);
@@ -151,6 +279,73 @@ function App() {
     setShowFilterModal(false);
   };
 
+  const handleVenueListExpandChange = (expanded: boolean) => {
+    setIsVenueListExpanded(expanded);
+  };
+
+  const handleToggleShowPOIs = (show: boolean) => {
+    setShowPOIs(show);
+  };
+
+  const handleCloseListView = () => {
+    setIsVenueListExpanded(false);
+  };
+
+  const handleGuestList = (venue: Venue) => {
+    setGuestListVenue(venue);
+    setShowGuestListModal(true);
+  };
+
+  const handleGuestListSubmit = (name: string, email: string, phone: string, partySize: number) => {
+    // In a real app, this would make an API call to add the user to the guest list
+    console.log(`Adding ${name} to guest list for ${guestListVenue?.name}`);
+    console.log(`Email: ${email}, Phone: ${phone}, Party Size: ${partySize}`);
+    
+    // Close the modal
+    setShowGuestListModal(false);
+    
+    // Show confirmation
+    alert(`You've been added to the guest list for ${guestListVenue?.name}!`);
+  };
+
+  const handleLogoClick = () => {
+    // Reset to home page (map view)
+    setActiveTab('search');
+    setSelectedVenue(null);
+    setShowTableReservation(false);
+    setIsVenueListExpanded(false);
+    setViewMode('map');
+    // Reset any other state that might prevent showing the map
+    setShowReservationModal(false);
+    setShowConfirmation(false);
+    setShowFilterModal(false);
+    setShowGuestListModal(false);
+  };
+
+  const handleTableInquiry = (
+    venueId: string, 
+    tableId: string, 
+    tier: string, 
+    deposit: number, 
+    men: number, 
+    women: number
+  ) => {
+    // Add the inquiry to the list
+    setTableInquiries(prev => [
+      ...prev,
+      { venueId, tableId, tier, deposit, men, women }
+    ]);
+    
+    // In a real app, this would send the inquiry to the backend
+    console.log(`Table inquiry received for venue ${venueId}, table ${tableId}`);
+    console.log(`Tier: ${tier}, Deposit: $${deposit}`);
+    console.log(`Party: ${men} men, ${women} women`);
+    
+    // Show confirmation and close the table reservation view
+    alert(`Your inquiry for ${selectedVenue?.name} has been sent! We'll contact you shortly.`);
+    setShowTableReservation(false);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-black text-white">
       {activeTab === 'discover' ? (
@@ -162,62 +357,100 @@ function App() {
           {/* Top search bar with logo */}
           <div className="p-4 bg-black/80 shadow-md z-10">
             <div className="mb-2">
-              <Logo />
+              <Logo onLogoClick={handleLogoClick} />
             </div>
             <SearchBar onSearch={handleSearch} onLocationClick={handleLocationClick} />
           </div>
           
-          {/* Filter bar */}
-          <div className="px-4 py-2 bg-black/80 z-10">
+          {/* Filter bar - visible in both map and list views */}
+          <div className="px-4 py-2 bg-black/80 z-10 sticky top-0">
             <FilterBar filters={filters} onFilterChange={setFilters} />
+            {viewMode === 'map' && (
+              <div className="flex justify-between items-center text-xs text-gray-400 mt-1 px-1">
+                <span>{pointsOfInterest.length} points of interest shown on map</span>
+              </div>
+            )}
           </div>
           
           {/* Main content */}
           <div className="flex-1 relative overflow-hidden">
-            {/* Map */}
-            <div className="absolute inset-0">
-              <Map 
-                venues={venues} 
-                center={mapCenter} 
-                onVenueSelect={handleVenueSelect} 
+            {showTableReservation && selectedVenue ? (
+              <TableReservationView 
+                venue={selectedVenue}
+                onBack={() => setShowTableReservation(false)}
+                onReserve={handleTableReserve}
+                onInquiry={(tableId, tier, deposit, men, women) => 
+                  handleTableInquiry(selectedVenue.id, tableId, tier, deposit, men, women)
+                }
               />
-            </div>
-            
-            {/* Filter button */}
-            <button 
-              onClick={openFilterModal}
-              className="absolute bottom-24 right-4 bg-black text-white p-3 rounded-full shadow-lg z-10"
-            >
-              <Filter className="h-6 w-6" />
-            </button>
-            
-            {/* Selected venue card */}
-            {selectedVenue && (
-              <div 
-                ref={cardRef}
-                className="absolute bottom-0 left-0 right-0 transition-transform duration-300 ease-out"
-                style={{ transform: `translateY(${cardPosition}px)` }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-              >
-                {/* Pull down handle */}
-                <div 
-                  className="flex justify-center items-center h-8 bg-black/90 rounded-t-lg cursor-pointer"
-                  onClick={dismissCard}
-                >
-                  <ArrowDown className="h-5 w-5 text-gray-400" />
-                  <span className="text-xs text-gray-400 ml-1">Swipe down to dismiss</span>
-                </div>
-                
-                <div className="p-4 pb-20">
-                  <VenueCard 
-                    venue={selectedVenue} 
-                    onReserve={() => handleReserve(selectedVenue)}
-                    onFavorite={handleFavorite}
+            ) : selectedVenue ? (
+              // Show venue detail view when a venue is selected
+              <VenueDetailView 
+                venue={selectedVenue}
+                onClose={() => {
+                  setSelectedVenue(null);
+                  // Clear reservation time and table type when closing
+                  setReservationTime('');
+                  setReservationTableType('');
+                }}
+                onReserve={handleReserve}
+                onGuestList={handleGuestList}
+                selectedTime={reservationTime}
+                selectedTableType={reservationTableType}
+              />
+            ) : viewMode === 'map' ? (
+              <>
+                {/* Map */}
+                <div className="absolute inset-0">
+                  <Map 
+                    venues={venues} 
+                    center={mapCenter} 
+                    onVenueSelect={handleVenueSelect}
+                    showPOIs={showPOIs}
+                    onTableReservation={(venue) => {
+                      // First select the venue
+                      setSelectedVenue(venue);
+                      // Then show table reservation view
+                      setShowTableReservation(true);
+                    }}
+                    onGuestList={(venue) => {
+                      // Handle guest list action
+                      handleGuestList(venue);
+                    }}
                   />
                 </div>
-              </div>
+                
+                {/* Venue list */}
+                <div className="absolute bottom-16 left-0 right-0 z-10">
+                  <VenueList 
+                    venues={venues}
+                    onVenueSelect={handleVenueSelect}
+                    onExpandChange={handleVenueListExpandChange}
+                    showPOIs={showPOIs}
+                    onToggleShowPOIs={handleToggleShowPOIs}
+                  />
+                </div>
+                
+                {/* Filter button - hide when venue list is expanded */}
+                {!isVenueListExpanded && (
+                  <button 
+                    onClick={openFilterModal}
+                    className="absolute bottom-24 right-4 bg-black text-white p-3 rounded-full shadow-lg z-20"
+                  >
+                    <Filter className="h-6 w-6" />
+                  </button>
+                )}
+              </>
+            ) : (
+              /* List View */
+              <VenueListView 
+                venues={venues}
+                filters={filters}
+                onVenueSelect={handleVenueSelect}
+                onReserve={handleReserveWithTime}
+                onNotify={handleNotify}
+                onClose={handleCloseListView}
+              />
             )}
           </div>
         </>
@@ -226,8 +459,10 @@ function App() {
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
-      {/* Bottom navigation */}
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Bottom navigation - hide when venue list is expanded or venue is selected */}
+      {!isVenueListExpanded && !selectedVenue && (
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+      )}
       
       {/* Reservation modal */}
       {selectedVenue && (
@@ -237,6 +472,8 @@ function App() {
           isOpen={showReservationModal}
           onClose={() => setShowReservationModal(false)}
           onReserve={handleConfirmReservation}
+          preselectedTime={reservationTime}
+          selectedTable={selectedTableDetails}
         />
       )}
       
@@ -247,16 +484,28 @@ function App() {
         date={confirmationDetails.date}
         time={confirmationDetails.time}
         confirmationCode={confirmationDetails.confirmationCode}
+        tableDetails={confirmationDetails.tableDetails}
         isOpen={showConfirmation}
         onClose={() => setShowConfirmation(false)}
       />
 
       {/* Filter modal */}
-      <FilterModal 
+      <FilterModal
         isOpen={showFilterModal}
         onClose={() => setShowFilterModal(false)}
         onApply={handleApplyFilters}
+        initialFilters={filters}
       />
+
+      {/* Guest List Modal */}
+      {guestListVenue && (
+        <GuestListModal
+          venue={guestListVenue}
+          isOpen={showGuestListModal}
+          onClose={() => setShowGuestListModal(false)}
+          onSubmit={handleGuestListSubmit}
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,13 @@ export interface Venue {
   photos: string[];
   type: string;
   available: boolean;
+  timeSlots?: TimeSlot[];
+}
+
+export interface TimeSlot {
+  time: string;
+  type: string; // e.g., "Dining Room", "Bar Seat"
+  available: boolean;
 }
 
 export interface Reservation {
@@ -36,11 +43,13 @@ export interface User {
   avatarUrl: string | null;
 }
 
+export type VenueType = 'available' | 'nightclub' | 'lounge' | 'bar' | 'events' | 'all';
+
 export interface FilterOptions {
   partySize: number;
   date: string;
   time: string;
-  filterType: 'available' | 'collections' | 'lists' | 'events' | 'all';
+  selectedFilters: VenueType[];
 }
 
 export interface Editorial {

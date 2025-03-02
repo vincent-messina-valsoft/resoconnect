@@ -8,7 +8,11 @@ interface VenueCardProps {
   onFavorite: (venueId: string) => void;
 }
 
-const VenueCard: React.FC<VenueCardProps> = ({ venue, onReserve, onFavorite }) => {
+const VenueCard: React.FC<VenueCardProps> = ({ 
+  venue, 
+  onReserve, 
+  onFavorite
+}) => {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -97,6 +101,15 @@ const VenueCard: React.FC<VenueCardProps> = ({ venue, onReserve, onFavorite }) =
           <span>{venue.location.address}</span>
           <span className="mx-1">•</span>
           <span>{venue.location.distance}</span>
+        </div>
+        
+        <div className="mt-4">
+          <button
+            onClick={() => onReserve(venue)}
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+          >
+            Reserve
+          </button>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, Calendar, Clock, Users, MapPin } from 'lucide-react';
+import { CheckCircle, Calendar, Clock, Users, MapPin, Table } from 'lucide-react';
 import { Venue } from '../types';
 
 interface ReservationConfirmationProps {
@@ -10,6 +10,11 @@ interface ReservationConfirmationProps {
   confirmationCode: string;
   isOpen: boolean;
   onClose: () => void;
+  tableDetails?: {
+    id: string;
+    tier: string;
+    capacity: number;
+  } | null;
 }
 
 const ReservationConfirmation: React.FC<ReservationConfirmationProps> = ({
@@ -19,7 +24,8 @@ const ReservationConfirmation: React.FC<ReservationConfirmationProps> = ({
   time,
   confirmationCode,
   isOpen,
-  onClose
+  onClose,
+  tableDetails
 }) => {
   if (!isOpen) return null;
   
@@ -56,6 +62,20 @@ const ReservationConfirmation: React.FC<ReservationConfirmationProps> = ({
                 <MapPin className="h-5 w-5 mr-2 text-gray-600" />
                 <span>{venue.location.address}</span>
               </div>
+              
+              {tableDetails && (
+                <div className="flex items-start mt-2">
+                  <Table className="h-5 w-5 mr-2 text-gray-600 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Table Details:</span>
+                    <div className="text-sm text-gray-700 ml-1">
+                      <div>Table: {tableDetails.id}</div>
+                      <div>Tier: {tableDetails.tier}</div>
+                      <div>Capacity: {tableDetails.capacity} people</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           

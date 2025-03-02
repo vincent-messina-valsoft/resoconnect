@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Users, Calendar, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Users, Calendar, Clock, Table } from 'lucide-react';
 import { Venue, FilterOptions } from '../types';
 import { format } from 'date-fns';
 
@@ -9,6 +9,12 @@ interface ReservationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onReserve: (venueId: string, partySize: number, date: string, time: string) => void;
+  preselectedTime?: string;
+  selectedTable?: {
+    id: string;
+    tier: string;
+    capacity: number;
+  } | null;
 }
 
 const ReservationModal: React.FC<ReservationModalProps> = ({
@@ -16,11 +22,25 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
   filters,
   isOpen,
   onClose,
-  onReserve
+  onReserve,
+  preselectedTime,
+  selectedTable
 }) => {
-  const [partySize, setPartySize] = useState(filters.partySize);
+  const [partySize, setPartySize] = useState(selectedTable?.capacity || filters.partySize);
   const [date, setDate] = useState(filters.date);
-  const [time, setTime] = useState(filters.time);
+  const [time, setTime] = useState(preselectedTime || filters.time);
+  
+  useEffect(() => {
+    if (preselectedTime) {
+      setTime(preselectedTime);
+    }
+  }, [preselectedTime]);
+  
+  useEffect(() => {
+    if (selectedTable?.capacity) {
+      setPartySize(selectedTable.capacity);
+    }
+  }, [selectedTable]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +83,21 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
         <form onSubmit={handleSubmit} className="p-4">
           <h3 className="text-lg font-semibold mb-4">Make a Reservation</h3>
           
+          {/* Selected Table Information */}
+          {selectedTable && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-md border border-blue-200">
+              <div className="flex items-center mb-2">
+                <Table className="h-5 w-5 mr-2 text-blue-600" />
+                <span className="font-medium text-blue-800">Selected Table</span>
+              </div>
+              <div className="text-sm text-gray-700">
+                <p><span className="font-medium">Table:</span> {selectedTable.id}</p>
+                <p><span className="font-medium">Tier:</span> {selectedTable.tier}</p>
+                <p><span className="font-medium">Capacity:</span> {selectedTable.capacity} people</p>
+              </div>
+            </div>
+          )}
+          
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
               <Users className="h-4 w-4 mr-1" /> Party Size
@@ -71,6 +106,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
               value={partySize}
               onChange={(e) => setPartySize(Number(e.target.value))}
               className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={!!selectedTable} // Disable if a table is selected
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((size) => (
                 <option key={size} value={size}>
@@ -78,6 +114,9 @@ const ReservationModal: React.FC<ReservationModalProps> = ({
                 </option>
               ))}
             </select>
+            {selectedTable && (
+              <p className="text-xs text-gray-500 mt-1">Party size is fixed based on the selected table.</p>
+            )}
           </div>
           
           <div className="mb-4">

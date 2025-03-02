@@ -1,6 +1,6 @@
 import React from 'react';
-import { Users, Calendar, Clock } from 'lucide-react';
-import { FilterOptions } from '../types';
+import { Users, Calendar, Clock, Check } from 'lucide-react';
+import { FilterOptions, VenueType } from '../types';
 
 interface FilterBarProps {
   filters: FilterOptions;
@@ -20,8 +20,22 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onFilterChange }) => {
     onFilterChange({ ...filters, time });
   };
 
-  const handleFilterTypeChange = (filterType: FilterOptions['filterType']) => {
-    onFilterChange({ ...filters, filterType });
+  const toggleFilterType = (filterType: VenueType) => {
+    const currentFilters = [...filters.selectedFilters];
+    
+    if (currentFilters.includes(filterType)) {
+      // Remove the filter if it's already selected
+      const updatedFilters = currentFilters.filter(type => type !== filterType);
+      onFilterChange({ ...filters, selectedFilters: updatedFilters.length ? updatedFilters : ['available'] });
+    } else {
+      // Add the filter if it's not already selected
+      const updatedFilters = [...currentFilters, filterType];
+      onFilterChange({ ...filters, selectedFilters: updatedFilters });
+    }
+  };
+
+  const isFilterSelected = (filterType: VenueType) => {
+    return filters.selectedFilters.includes(filterType);
   };
 
   return (
@@ -45,47 +59,65 @@ const FilterBar: React.FC<FilterBarProps> = ({ filters, onFilterChange }) => {
         </div>
       </div>
       
-      <div className="flex space-x-2 overflow-x-auto pb-2">
-        <button
-          className={`px-4 py-2 rounded-full text-sm font-medium ${
-            filters.filterType === 'available' 
-              ? 'bg-white text-black' 
-              : 'bg-black/60 text-white'
-          }`}
-          onClick={() => handleFilterTypeChange('available')}
-        >
-          Available
-        </button>
-        <button
-          className={`px-4 py-2 rounded-full text-sm font-medium ${
-            filters.filterType === 'collections' 
-              ? 'bg-white text-black' 
-              : 'bg-black/60 text-white'
-          }`}
-          onClick={() => handleFilterTypeChange('collections')}
-        >
-          Collections
-        </button>
-        <button
-          className={`px-4 py-2 rounded-full text-sm font-medium ${
-            filters.filterType === 'lists' 
-              ? 'bg-white text-black' 
-              : 'bg-black/60 text-white'
-          }`}
-          onClick={() => handleFilterTypeChange('lists')}
-        >
-          Lists
-        </button>
-        <button
-          className={`px-4 py-2 rounded-full text-sm font-medium ${
-            filters.filterType === 'events' 
-              ? 'bg-white text-black' 
-              : 'bg-black/60 text-white'
-          }`}
-          onClick={() => handleFilterTypeChange('events')}
-        >
-          Events
-        </button>
+      <div className="flex flex-col space-y-2">
+        <div className="flex space-x-2 overflow-x-auto pb-2">
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
+              isFilterSelected('available') 
+                ? 'bg-white text-black' 
+                : 'bg-black/60 text-white'
+            }`}
+            onClick={() => toggleFilterType('available')}
+          >
+            {isFilterSelected('available') && <Check className="h-3 w-3 mr-1" />}
+            Available
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
+              isFilterSelected('nightclub') 
+                ? 'bg-white text-black' 
+                : 'bg-black/60 text-white'
+            }`}
+            onClick={() => toggleFilterType('nightclub')}
+          >
+            {isFilterSelected('nightclub') && <Check className="h-3 w-3 mr-1" />}
+            Nightclub
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
+              isFilterSelected('lounge') 
+                ? 'bg-white text-black' 
+                : 'bg-black/60 text-white'
+            }`}
+            onClick={() => toggleFilterType('lounge')}
+          >
+            {isFilterSelected('lounge') && <Check className="h-3 w-3 mr-1" />}
+            Lounge
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
+              isFilterSelected('bar') 
+                ? 'bg-white text-black' 
+                : 'bg-black/60 text-white'
+            }`}
+            onClick={() => toggleFilterType('bar')}
+          >
+            {isFilterSelected('bar') && <Check className="h-3 w-3 mr-1" />}
+            Bar
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full text-sm font-medium flex items-center ${
+              isFilterSelected('events') 
+                ? 'bg-white text-black' 
+                : 'bg-black/60 text-white'
+            }`}
+            onClick={() => toggleFilterType('events')}
+          >
+            {isFilterSelected('events') && <Check className="h-3 w-3 mr-1" />}
+            Events
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 px-1">Select multiple venue types to narrow results</p>
       </div>
     </div>
   );
