@@ -420,6 +420,16 @@ function App() {
                   />
                 </div>
                 
+                {/* Filter button - positioned above venue list */}
+                {!isVenueListExpanded && (
+                  <button 
+                    onClick={openFilterModal}
+                    className="absolute bottom-[calc(30vh+4rem)] right-4 bg-black text-white p-3 rounded-full shadow-lg z-20"
+                  >
+                    <Filter className="h-6 w-6" />
+                  </button>
+                )}
+
                 {/* Venue list */}
                 <div className="absolute bottom-16 left-0 right-0 z-10">
                   <VenueList 
@@ -430,16 +440,6 @@ function App() {
                     onToggleShowPOIs={handleToggleShowPOIs}
                   />
                 </div>
-                
-                {/* Filter button - hide when venue list is expanded */}
-                {!isVenueListExpanded && (
-                  <button 
-                    onClick={openFilterModal}
-                    className="absolute bottom-24 right-4 bg-black text-white p-3 rounded-full shadow-lg z-20"
-                  >
-                    <Filter className="h-6 w-6" />
-                  </button>
-                )}
               </>
             ) : (
               /* List View */
