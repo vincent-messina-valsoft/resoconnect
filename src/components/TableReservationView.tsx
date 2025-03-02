@@ -13,7 +13,7 @@ interface TableReservationViewProps {
 type TableTier = 'Expensive' | 'Medium' | 'Low';
 
 // Define Point of Interest types
-type POIType = 'Nightclub' | 'Lounge' | 'Bar' | 'Event' | 'Entrance' | 'Restroom' | 'VIP';
+type POIType = 'Entrance' | 'MainEntrance' | 'DJBooth';
 
 // Define table data structure
 interface Table {
@@ -34,7 +34,6 @@ interface POI {
   description: string;
   x: number;
   y: number;
-  icon?: string; // Optional icon name
 }
 
 const TableReservationView: React.FC<TableReservationViewProps> = ({
@@ -56,15 +55,8 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
 
   // Mock Points of Interest data - in a real app, this would come from an API
   const [pointsOfInterest] = useState<POI[]>([
-    { id: 'poi1', name: 'Main Entrance', type: 'Entrance', description: 'Main venue entrance', x: 50, y: 5 },
-    { id: 'poi2', name: 'VIP Lounge', type: 'Lounge', description: 'Exclusive VIP area', x: 85, y: 15 },
-    { id: 'poi3', name: 'Main Bar', type: 'Bar', description: 'Full-service main bar', x: 15, y: 15 },
-    { id: 'poi4', name: 'Dance Floor', type: 'Nightclub', description: 'Main dance floor area', x: 50, y: 50 },
-    { id: 'poi5', name: 'Event Stage', type: 'Event', description: 'Live performance stage', x: 50, y: 90 },
-    { id: 'poi6', name: 'Men\'s Restroom', type: 'Restroom', description: 'Men\'s facilities', x: 10, y: 90 },
-    { id: 'poi7', name: 'Women\'s Restroom', type: 'Restroom', description: 'Women\'s facilities', x: 90, y: 90 },
-    { id: 'poi8', name: 'Bottle Service Bar', type: 'Bar', description: 'Premium bottle service', x: 85, y: 60 },
-    { id: 'poi9', name: 'VIP Entrance', type: 'Entrance', description: 'Private VIP entrance', x: 95, y: 5 },
+    { id: 'poi1', name: 'Main Entrance', type: 'MainEntrance', description: 'Main venue entrance', x: 50, y: 5 },
+    { id: 'poi2', name: 'DJ Booth', type: 'DJBooth', description: 'Main DJ performance area', x: 50, y: 50 },
   ]);
 
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
@@ -161,23 +153,20 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
 
   // Handle POI selection
   const handlePOISelect = (poi: POI) => {
-    // If selecting the same POI, toggle selection off
     if (selectedPOI?.id === poi.id) {
       setSelectedPOI(null);
       return;
     }
     
-    // Select new POI
     setSelectedPOI(poi);
     setShowPOIDetails(false);
     
-    // Deselect table if POI is selected
     if (selectedTable) {
       setSelectedTable(null);
     }
   };
   
-  // Show POI reservation details in panel
+  // Show POI details
   const handleShowPOIDetails = () => {
     setShowPOIDetails(true);
   };
@@ -198,15 +187,16 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
     }
   };
 
-  // POI icons mapping
-  const poiIcons: Record<POIType, string> = {
-    'Nightclub': '🎵', // Music note for nightclub
-    'Lounge': '🛋️', // Couch for lounge
-    'Bar': '🍸', // Cocktail for bar
-    'Event': '🎭', // Performing arts for events
-    'Entrance': '🚪', // Door for entrance
-    'Restroom': '🚻', // Restroom symbol
-    'VIP': '⭐', // Star for VIP areas
+  // POI style mapping
+  const getPoiStyle = (poiType: POIType): string => {
+    switch (poiType) {
+      case 'DJBooth':
+        return 'bg-purple-500';
+      case 'MainEntrance':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
+    }
   };
 
   return (
@@ -269,21 +259,11 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
             
             if (!isVisible) return null;
             
-            // Define POI style based on type
-            const poiBgColor = 
-              poi.type === 'Nightclub' ? 'bg-purple-500' : 
-              poi.type === 'Lounge' ? 'bg-blue-500' : 
-              poi.type === 'Bar' ? 'bg-amber-500' : 
-              poi.type === 'Event' ? 'bg-pink-500' :
-              poi.type === 'Entrance' ? 'bg-green-500' :
-              poi.type === 'Restroom' ? 'bg-cyan-500' :
-              'bg-gray-500';
-            
             return (
               <div key={poi.id}>
                 {/* POI Marker */}
                 <div 
-                  className={`absolute cursor-pointer px-2 py-1 rounded-md ${poiBgColor} ${isSelected ? 'ring-2 ring-white' : ''}`}
+                  className={`absolute cursor-pointer px-2 py-1 rounded-md ${getPoiStyle(poi.type)} ${isSelected ? 'ring-2 ring-white' : ''}`}
                   style={{ 
                     left: `${poi.x}%`, 
                     top: `${poi.y}%`,
@@ -294,7 +274,6 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
                   onClick={() => handlePOISelect(poi)}
                 >
                   <div className="flex items-center justify-center whitespace-nowrap">
-                    <span className="mr-1">{poiIcons[poi.type]}</span>
                     <span className="font-bold">{poi.name}</span>
                   </div>
                 </div>
@@ -315,7 +294,7 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
                       onClick={() => handleShowPOIDetails()}
                       className="w-full text-white bg-blue-600 hover:bg-blue-700 rounded py-1 px-2 text-sm"
                     >
-                      Reservation Options
+                      View Details
                     </button>
                   </div>
                 )}
@@ -382,13 +361,11 @@ const TableReservationView: React.FC<TableReservationViewProps> = ({
         {/* Selection details panel - only shown when showPOIDetails is true */}
         {selectedPOI && showPOIDetails ? (
           <div className="bg-gray-800 rounded-lg p-4 mb-4 animate-fadeIn">
-            <h3 className="text-lg font-bold mb-2 flex items-center">
-              <span className="mr-2">{poiIcons[selectedPOI.type]}</span>
-              {selectedPOI.name} - {selectedPOI.type}
+            <h3 className="text-lg font-bold mb-2">
+              {selectedPOI.name}
             </h3>
             
             <p className="text-gray-400 mb-4">{selectedPOI.description}</p>
-            {/* Additional POI details could go here */}
             
             <div className="flex justify-between mt-4">
               <button 
